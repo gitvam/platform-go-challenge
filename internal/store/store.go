@@ -3,11 +3,10 @@ package store
 import (
 	"errors"
 	"sync"
-
 	"github.com/gitvam/platform-go-challenge/internal/models"
 )
 
-// Store interface, so we can swap out storage (e.g., DB, cache) later.
+// Store interface, so we can swap out storage
 type Store interface {
 	ListFavorites(userID string) ([]models.Asset, error)
 	AddFavorite(userID string, asset models.Asset) error
@@ -21,7 +20,7 @@ type InMemoryStore struct {
 	favorites map[string]map[string]models.Asset // userID -> assetID -> Asset
 }
 
-// NewInMemoryStore creates an empty store.
+// Creates an empty store.
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		favorites: make(map[string]map[string]models.Asset),
