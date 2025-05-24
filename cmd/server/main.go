@@ -3,6 +3,7 @@ package main
 import (
     "log"
     "net/http"
+	"os"
     "github.com/go-chi/chi/v5"
     "github.com/gitvam/platform-go-challenge/internal/store"
     "github.com/gitvam/platform-go-challenge/internal/handlers"
@@ -10,17 +11,23 @@ import (
 )
 
 func main() {
-    // 1. Initialize the in-memory store
+    // Initialize the in-memory store
     s := store.NewInMemoryStore()
+
+	// Seed dummy data if running in dev environment
+    if os.Getenv("APP_ENV") == "dev" {
+        store.SeedDummyData(s)
+    }
+
     h := handlers.NewHandler(s)
 
-    // 2. Set up the router
+    // Set up the router
     r := chi.NewRouter()
 
-	//wire middleware
+	// Wire middleware
 	r.Use(middleware.Logging)
 
-    // 3. Routes
+    // Routes
     r.Route("/v1/users/{userID}/favorites", func(r chi.Router) {
         r.Get("/", h.ListFavorites)                 // GET    /v1/users/{userID}/favorites
         r.Post("/", h.AddFavorite)                  // POST   /v1/users/{userID}/favorites
@@ -28,7 +35,7 @@ func main() {
         r.Patch("/{assetID}", h.EditFavoriteDescription) // PATCH /v1/users/{userID}/favorites/{assetID}
     })
 
-    // 4. Start the server
+    // Start the server
     log.Println("Server starting on :8080...")
     if err := http.ListenAndServe(":8080", r); err != nil {
         log.Fatalf("could not start server: %v", err)

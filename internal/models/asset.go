@@ -20,13 +20,13 @@ type Asset interface {
 	Validate() error
 }
 
-// --- Chart Asset ---
+// Chart Asset
 type Chart struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	XAxisTitle  string    `json:"x_axis_title"`
 	YAxisTitle  string    `json:"y_axis_title"`
-	Data        []float64 `json:"data"`
+	Data        []int `json:"data"`
 	Description string    `json:"description"`
 }
 
@@ -41,7 +41,7 @@ func (c *Chart) Validate() error {
 	return nil
 }
 
-// --- Insight Asset ---
+// Insight Asset
 type Insight struct {
 	ID          string `json:"id"`
 	Text        string `json:"text"`
@@ -59,12 +59,12 @@ func (i *Insight) Validate() error {
 	return nil
 }
 
-// --- Audience Asset ---
+// Audience Asset
 type Audience struct {
 	ID                 string   `json:"id"`
-	Gender             string   `json:"gender"` // e.g. "male", "female"
+	Gender             string   `json:"gender"`
 	BirthCountry       string   `json:"birth_country"`
-	AgeGroups          []string `json:"age_groups"` // e.g. ["18-24", "25-34"]
+	AgeGroups          []string `json:"age_groups"`
 	HoursOnSocial      int      `json:"hours_on_social"`
 	PurchasesLastMonth int      `json:"purchases_last_month"`
 	Description        string   `json:"description"`
