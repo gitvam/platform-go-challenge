@@ -151,4 +151,3 @@ func TestAddAndListDifferentAssets(t *testing.T) {
 		t.Errorf("expected 3 favorites, got %d", len(favs))
 	}
 }
-
