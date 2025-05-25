@@ -12,6 +12,7 @@ const (
 )
 
 // Asset is the interface for all assets
+// swagger:model Asset
 type Asset interface {
 	GetID() string
 	GetType() AssetType
@@ -21,13 +22,14 @@ type Asset interface {
 }
 
 // Chart Asset
+// swagger:model Chart
 type Chart struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	XAxisTitle  string    `json:"x_axis_title"`
-	YAxisTitle  string    `json:"y_axis_title"`
-	Data        []int `json:"data"`
-	Description string    `json:"description"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	XAxisTitle  string `json:"x_axis_title"`
+	YAxisTitle  string `json:"y_axis_title"`
+	Data        []int  `json:"data"`
+	Description string `json:"description"`
 }
 
 func (c *Chart) GetID() string              { return c.ID }
@@ -42,6 +44,7 @@ func (c *Chart) Validate() error {
 }
 
 // Insight Asset
+// swagger:model Insight
 type Insight struct {
 	ID          string `json:"id"`
 	Text        string `json:"text"`
@@ -60,6 +63,7 @@ func (i *Insight) Validate() error {
 }
 
 // Audience Asset
+// swagger:model Asset
 type Audience struct {
 	ID                 string   `json:"id"`
 	Gender             string   `json:"gender"`

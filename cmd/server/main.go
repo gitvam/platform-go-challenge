@@ -1,43 +1,94 @@
+// @title           GWI Favorites API
+// @version         1.0
+// @description     An API to manage user favorites (charts, insights, audiences) at GWI.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   George Vamvakousis
+// @contact.email  geovam99@gmail.com
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:8080
+// @BasePath  /
 package main
 
 import (
-    "log"
-    "net/http"
+	"fmt"
+	"log"
+	"net/http"
 	"os"
-    "github.com/go-chi/chi/v5"
-    "github.com/gitvam/platform-go-challenge/internal/store"
-    "github.com/gitvam/platform-go-challenge/internal/handlers"
+	"strings"
+	"time"
+
+	_ "github.com/gitvam/platform-go-challenge/docs"
+	"github.com/gitvam/platform-go-challenge/internal/handlers"
 	"github.com/gitvam/platform-go-challenge/internal/middleware"
+	"github.com/gitvam/platform-go-challenge/internal/store"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httprate"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+// Bearer Token Auth
+func BearerAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Realistic dummy JWT token
+		const requiredToken = "gwi_dummy_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiZGVtb19hcGkiLCJyb2xlIjoiZGV2ZWxvcGVyIn0.r9_YC4a-NVZehR6qkqPlYnoqhlAo2Fne-4Iyt_1vxfQ"
+
+		authHeader := r.Header.Get("Authorization")
+		const prefix = "Bearer "
+		if !strings.HasPrefix(authHeader, prefix) || strings.TrimSpace(authHeader[len(prefix):]) != requiredToken {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
-    // Initialize the in-memory store
-    s := store.NewInMemoryStore()
+
+	// Initialize the in-memory store
+	s := store.NewInMemoryStore()
 
 	// Seed dummy data if running in dev environment
-    if os.Getenv("APP_ENV") == "dev" {
-        store.SeedDummyData(s)
-    }
+	if os.Getenv("APP_ENV") == "dev" {
+		store.SeedDummyData(s)
+		fmt.Println("Loaded dummy data!")
+	}
 
-    h := handlers.NewHandler(s)
+	h := handlers.NewHandler(s)
 
-    // Set up the router
-    r := chi.NewRouter()
+	// Set up the router
+	r := chi.NewRouter()
 
-	// Wire middleware
+	// Apply rate limiting: 10 requests per 10 seconds per IP
+	r.Use(httprate.Limit(
+		10,
+		time.Minute,
+		httprate.WithLimitHandler(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, `{"error": "Rate-limited. Please, slow down."}`, http.StatusTooManyRequests)
+		}),
+	))
+	
+	// Add logging middleware globally
 	r.Use(middleware.Logging)
 
-    // Routes
-    r.Route("/v1/users/{userID}/favorites", func(r chi.Router) {
-        r.Get("/", h.ListFavorites)                 // GET    /v1/users/{userID}/favorites
-        r.Post("/", h.AddFavorite)                  // POST   /v1/users/{userID}/favorites
-        r.Delete("/{assetID}", h.RemoveFavorite)    // DELETE /v1/users/{userID}/favorites/{assetID}
-        r.Patch("/{assetID}", h.EditFavoriteDescription) // PATCH /v1/users/{userID}/favorites/{assetID}
-    })
+	// Swagger route (no auth)
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-    // Start the server
-    log.Println("Server starting on :8080...")
-    if err := http.ListenAndServe(":8080", r); err != nil {
-        log.Fatalf("could not start server: %v", err)
-    }
+	// API routes (protected)
+	r.Route("/v1/users/{userID}/favorites", func(sr chi.Router) {
+		sr.Use(BearerAuthMiddleware)
+		sr.Get("/", h.ListFavorites)
+		sr.Post("/", h.AddFavorite)
+		sr.Delete("/{assetID}", h.RemoveFavorite)
+		sr.Patch("/{assetID}", h.EditFavoriteDescription)
+	})
+
+	// Start the server
+	log.Println("Server starting on :8080...")
+	if err := http.ListenAndServe(":8080", r); err != nil {
+		log.Fatalf("could not start server: %v", err)
+	}
 }

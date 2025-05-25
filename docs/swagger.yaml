@@ -1,0 +1,130 @@
+basePath: /
+host: localhost:8080
+info:
+  contact:
+    email: geovam99@gmail.com
+    name: George Vamvakousis
+  description: An API to manage user favorites (charts, insights, audiences) at GWI.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: GWI Favorites API
+  version: "1.0"
+paths:
+  /v1/users/{userID}/favorites:
+    get:
+      description: Get all favorite assets (charts, insights, audiences) for the specified
+        user.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items: {}
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: List all favorites for a user
+      tags:
+      - favorites
+    post:
+      description: Add a new favorite asset for the user (chart, insight, or audience).
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      - description: Asset to add
+        in: body
+        name: asset
+        required: true
+        schema: {}
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Add a favorite asset
+      tags:
+      - favorites
+  /v1/users/{userID}/favorites/{assetID}:
+    delete:
+      description: Remove an asset from the user's favorites by asset ID.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      - description: Asset ID
+        in: path
+        name: assetID
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+      summary: Remove a favorite asset
+      tags:
+      - favorites
+    patch:
+      description: Edit the description of a favorite asset.
+      parameters:
+      - description: User ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      - description: Asset ID
+        in: path
+        name: assetID
+        required: true
+        type: string
+      - description: New Description
+        in: body
+        name: description
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+      summary: Edit favorite asset description
+      tags:
+      - favorites
+swagger: "2.0"
