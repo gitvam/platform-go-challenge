@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gitvam/platform-go-challenge/internal/models"
@@ -13,7 +14,8 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-func writeJSONError(w http.ResponseWriter, msg string, status int) {
+func WriteJSONError(w http.ResponseWriter, msg string, status int) {
+	log.Printf("[ERROR] %d - %s", status, msg)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(ErrorResponse{Error: msg})
@@ -42,7 +44,7 @@ func (h *Handler) ListFavorites(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 	favorites, err := h.Store.ListFavorites(userID)
 	if err != nil {
-		writeJSONError(w, err.Error(), http.StatusInternalServerError)
+		WriteJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -65,22 +67,22 @@ func (h *Handler) AddFavorite(w http.ResponseWriter, r *http.Request) {
 
 	var raw map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
-		writeJSONError(w, "invalid JSON", http.StatusBadRequest)
+		WriteJSONError(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	asset, err := models.DecodeAsset(raw)
 	if err != nil {
-		writeJSONError(w, err.Error(), http.StatusBadRequest)
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if err := h.Store.AddFavorite(userID, asset); err != nil {
 		if err.Error() == "asset already in favorites" {
-			writeJSONError(w, err.Error(), http.StatusConflict)
+			WriteJSONError(w, err.Error(), http.StatusConflict)
 			return
 		}
-		writeJSONError(w, err.Error(), http.StatusBadRequest)
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -104,7 +106,7 @@ func (h *Handler) RemoveFavorite(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 	assetID := chi.URLParam(r, "assetID")
 	if err := h.Store.RemoveFavorite(userID, assetID); err != nil {
-		writeJSONError(w, err.Error(), http.StatusNotFound)
+		WriteJSONError(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -129,11 +131,11 @@ func (h *Handler) EditFavoriteDescription(w http.ResponseWriter, r *http.Request
 		Description string `json:"description"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONError(w, "invalid JSON", http.StatusBadRequest)
+		WriteJSONError(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
 	if err := h.Store.EditFavoriteDescription(userID, assetID, req.Description); err != nil {
-		writeJSONError(w, err.Error(), http.StatusNotFound)
+		WriteJSONError(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

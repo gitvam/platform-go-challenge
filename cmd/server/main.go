@@ -39,7 +39,7 @@ func BearerAuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		const prefix = "Bearer "
 		if !strings.HasPrefix(authHeader, prefix) || strings.TrimSpace(authHeader[len(prefix):]) != requiredToken {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			handlers.WriteJSONError(w, "unauthorized: invalid or missing token", http.StatusUnauthorized)
 			return
 		}
 		next.ServeHTTP(w, r)
