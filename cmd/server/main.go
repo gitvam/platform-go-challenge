@@ -29,8 +29,6 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// johsmith token: JWT Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDgzNzMyNDEsInN1YiI6ImpvaG5zbWl0aCJ9.BPEdl1zvq3k4qqq3ewPRIdZVmvFsmugB0gYskvv8nEA
-
 func main() {
 
 	// Initialize the in-memory store
