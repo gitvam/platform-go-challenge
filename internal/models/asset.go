@@ -13,6 +13,9 @@ const (
 
 // Asset is the interface for all assets
 // swagger:model Asset
+//
+// swagger:oneOf Chart Insight Audience
+// swagger:discriminator type
 type Asset interface {
 	GetID() string
 	GetType() AssetType
@@ -30,6 +33,7 @@ type Chart struct {
 	YAxisTitle  string `json:"y_axis_title"`
 	Data        []int  `json:"data"`
 	Description string `json:"description"`
+	Type        AssetType `json:"type"`
 }
 
 func (c *Chart) GetID() string              { return c.ID }
@@ -49,6 +53,7 @@ type Insight struct {
 	ID          string `json:"id"`
 	Text        string `json:"text"`
 	Description string `json:"description"`
+	Type        AssetType `json:"type"`
 }
 
 func (i *Insight) GetID() string              { return i.ID }
@@ -63,7 +68,7 @@ func (i *Insight) Validate() error {
 }
 
 // Audience Asset
-// swagger:model Asset
+// swagger:model Audience
 type Audience struct {
 	ID                 string   `json:"id"`
 	Gender             string   `json:"gender"`
@@ -72,6 +77,7 @@ type Audience struct {
 	HoursOnSocial      int      `json:"hours_on_social"`
 	PurchasesLastMonth int      `json:"purchases_last_month"`
 	Description        string   `json:"description"`
+	Type        AssetType `json:"type"`
 }
 
 func (a *Audience) GetID() string              { return a.ID }

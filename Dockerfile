@@ -3,26 +3,26 @@ FROM golang:1.24.3-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod and sum files, then download dependencies
+# Copy go modules and download dependencies
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy all source code
+# Copy source code
 COPY . .
 
-# Build the application
-RUN go build -o server ./cmd/server/main.go
+# Run tests – fail build if any test fails
+RUN go test -v ./...
 
-# Use a minimal runtime image
-FROM alpine:3.18
+# Build the app
+RUN go build -o app ./cmd/server
+
+# Stage 2: Create a small final image
+FROM gcr.io/distroless/base-debian11
 
 WORKDIR /app
+COPY --from=builder /app/app /app/
 
-# Copy the compiled binary
-COPY --from=builder /app/server .
-
-# Expose API port
+# Expose port 8080 for the API
 EXPOSE 8080
 
-# Start the server
-CMD ["./server"]
+CMD ["/app/app"]

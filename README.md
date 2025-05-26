@@ -1,31 +1,131 @@
-# GlobalWebIndex Engineering Challenge
+# GWI Favorites API
 
-## Introduction
+A Go REST API for managing user favorites at GWI, including charts, insights, and audiences. Built with clean, idiomatic Go, tested in Docker, and secured with JWT authentication.
 
-This challenge is designed to give you the opportunity to demonstrate your abilities as a software engineer and specifically your knowledge of the Go language.
+---
 
-On the surface the challenge is trivial to solve, however you should choose to add features or capabilities which you feel demonstrate your skills and knowledge the best. For example, you could choose to optimise for performance and concurrency, you could choose to add a robust security layer or ensure your application is highly available. Or all of these.
+## 📦 Project Structure
 
-Of course, usually we would choose to solve any given requirement with the simplest possible solution, however that is not the spirit of this challenge.
+```
+├── cmd/server           # Entry point (main.go)
+├── docs/                # Swagger-generated OpenAPI docs (swagger.yaml, swagger.json, docs.go)
+├── internal/
+│   ├── handlers         # HTTP handlers
+│   ├── middleware       # JWT auth middleware
+│   ├── models           # Asset models and interface
+│   ├── store            # In-memory store + seeding
+│   └── utils            # JSON response wrappers, logging
+├── handlers_test/       # Integration tests for the API
+├── dev.bat              # Windows dev script (build, run, test)
+├── Dockerfile           # Multi-stage Docker build (build + distroless run)
+├── docker-compose.yml   # Service orchestration (optional)
+├── go.mod               # Go module definition
+├── go.sum               # Go dependency lock file
+└── README.md            # Project documentation
+```
 
-## Challenge
+---
 
-Let's say that in GWI platform all of our users have access to a huge list of assets. We want our users to have a peronal list of favourites, meaning assets that favourite or “star” so that they have them in their frontpage dashboard for quick access. An asset can be one the following
-* Chart (that has a small title, axes titles and data)
-* Insight (a small piece of text that provides some insight into a topic, e.g. "40% of millenials spend more than 3hours on social media daily")
-* Audience (which is a series of characteristics, for that exercise lets focus on gender (Male, Female), birth country, age groups, hours spent daily on social media, number of purchases last month)
-e.g. Males from 24-35 that spent more than 3 hours on social media daily.
+## 🚀 Features
 
-Build a web server which has some endpoint to receive a user id and return a list of all the user’s favourites. Also we want endpoints that would add an asset to favourites, remove it, or edit its description. Assets obviously can share some common attributes (like their description) but they also have completely different structure and data. It’s up to you to decide the structure and we are not looking for something overly complex here (especially for the cases of audiences). There is no need to have/deploy/create an actual database although we would like to discuss about storage options and data representations.
+- ✅ Add/remove/edit favorite assets per user
+- ✅ Supports Charts, Insights, Audiences via polymorphic `Asset` interface
+- ✅ JWT authentication (with real signature validation)
+- ✅ Swagger docs (`/swagger/index.html`)
+- ✅ In-memory store with dummy data for dev
+- ✅ Standardized JSON API responses
+- ✅ All tests run via Docker (`go test ./...`)
+- ✅ Windows-first dev flow via `dev.bat`
+- 🛡️ IP-based rate limiting via `go-chi/httprate`
 
-Note that users have no limit on how many assets they want on their favourites so your service will need to provide a reasonable response time.
+---
 
-A working server application with functional API is required, along with a clear readme.md. Useful and passing tests would be also be viewed favourably
+## 🧪 Running Tests
 
-It is appreciated, though not required, if a Dockerfile is included.
+```bash
+dev.bat test
+```
 
-## Submission
+This runs `go test -v ./...` in a Docker container using Go `1.24.3`.
 
-Just create a fork from the current repo and send it to us!
+---
 
-Good luck, potential colleague!
+## 🛠 Running the API
+
+```bash
+dev.bat build
+dev.bat run
+```
+
+Or use Docker directly:
+
+```bash
+docker build -t gwi-favorites-api .
+docker run -p 8080:8080 -e APP_ENV=dev gwi-favorites-api
+```
+
+> JWTs will be printed in the terminal on startup in dev mode.
+
+---
+
+## 🔐 JWT Authentication
+
+- The API expects a valid Bearer token in `Authorization` header.
+- Tokens are validated and parsed using `github.com/golang-jwt/jwt/v5`
+- Subject claim (`sub`) is used as the authenticated `userID`.
+
+### Example Token Payload
+
+```json
+{
+  "sub": "johnsmith",
+  "exp": 1748374243
+}
+```
+
+---
+
+## 🧾 Example API Response
+
+### ✅ Success
+
+```json
+{
+  "status": "success",
+  "data": [
+    { "id": "chart_1", "title": "Engagement Q1", "type": "chart" }
+  ]
+}
+```
+
+### ❌ Error
+
+```json
+{
+  "status": "error",
+  "message": "asset already in favorites"
+}
+```
+
+---
+
+## 🧠 Design Notes
+
+- ✅ All handlers use `utils.SuccessResponse` and `utils.ErrorResponse`
+- ✅ `getUserIDOrAbort()` ensures user is in context from JWT
+- ✅ Assets are dynamically deserialized from JSON via a type field
+
+---
+
+## 💡 Future Improvements
+
+- 🔁 Move from in-memory to persistent database (PostgreSQL)
+- 🧠 Add caching layer (e.g., `go-cache` or Redis) for frequently accessed assets
+- 📄 Improve Swagger schema with oneOf + discriminator
+
+---
+
+## 🧠 Author
+
+George Vamvakousis  
+📧 [geovam99@gmail.com](mailto:geovam99@gmail.com)

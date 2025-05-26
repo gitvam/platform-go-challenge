@@ -35,10 +35,10 @@ func SeedDummyData(s *InMemoryStore) {
 		Description:        "Digitally active Greek men aged 24-35 with high purchasing intent.",
 	})
 
-	// For user "maria.papadopoulou"
+	// For user "mariapapadopoulou"
 
 	// Chart
-	s.AddFavorite("maria.papadopoulou", &models.Chart{
+	s.AddFavorite("mariapapadopoulou", &models.Chart{
 		ID:          "chart_ecom_conversion",
 		Title:       "E-commerce Conversion Rates 2024",
 		XAxisTitle:  "Week",
@@ -48,14 +48,14 @@ func SeedDummyData(s *InMemoryStore) {
 	})
 
 	// Insight
-	s.AddFavorite("maria.papadopoulou", &models.Insight{
+	s.AddFavorite("mariapapadopoulou", &models.Insight{
 		ID:          "insight_genz_tiktok",
 		Text:        "Gen Z users are 3x more likely to purchase after seeing a TikTok ad.",
 		Description: "Finding from global digital consumer study 2024.",
 	})
 
 	// Audience
-	s.AddFavorite("maria.papadopoulou", &models.Audience{
+	s.AddFavorite("mariapapadopoulou", &models.Audience{
 		ID:                 "aud_uk_females_18_24",
 		Gender:             "female",
 		BirthCountry:       "UK",

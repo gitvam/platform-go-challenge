@@ -18,7 +18,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	_ "github.com/gitvam/platform-go-challenge/docs"
@@ -30,21 +29,7 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// Bearer Token Auth
-func BearerAuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Realistic dummy JWT token
-		const requiredToken = "gwi_dummy_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiZGVtb19hcGkiLCJyb2xlIjoiZGV2ZWxvcGVyIn0.r9_YC4a-NVZehR6qkqPlYnoqhlAo2Fne-4Iyt_1vxfQ"
-
-		authHeader := r.Header.Get("Authorization")
-		const prefix = "Bearer "
-		if !strings.HasPrefix(authHeader, prefix) || strings.TrimSpace(authHeader[len(prefix):]) != requiredToken {
-			handlers.WriteJSONError(w, "unauthorized: invalid or missing token", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
+// johsmith token: JWT Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDgzNzMyNDEsInN1YiI6ImpvaG5zbWl0aCJ9.BPEdl1zvq3k4qqq3ewPRIdZVmvFsmugB0gYskvv8nEA
 
 func main() {
 
@@ -70,7 +55,7 @@ func main() {
 			http.Error(w, `{"error": "Rate-limited. Please, slow down."}`, http.StatusTooManyRequests)
 		}),
 	))
-	
+
 	// Add logging middleware globally
 	r.Use(middleware.Logging)
 
@@ -79,7 +64,7 @@ func main() {
 
 	// API routes (protected)
 	r.Route("/v1/users/{userID}/favorites", func(sr chi.Router) {
-		sr.Use(BearerAuthMiddleware)
+		sr.Use(middleware.JWTAuthMiddleware)
 		sr.Get("/", h.ListFavorites)
 		sr.Post("/", h.AddFavorite)
 		sr.Delete("/{assetID}", h.RemoveFavorite)

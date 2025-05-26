@@ -1,6 +1,9 @@
+# Clean docker build
 .git
-.gitignore
-Dockerfile
 *.md
-tests/
-*.DS_Store
+*.log
+*.out
+.idea/
+*.swp
+*.test
+vendor/
