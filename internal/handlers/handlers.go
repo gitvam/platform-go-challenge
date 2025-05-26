@@ -62,45 +62,16 @@ func (h *Handler) ListFavorites(w http.ResponseWriter, r *http.Request) {
 // @Router       /v1/users/{userID}/favorites [post]
 func (h *Handler) AddFavorite(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
+
 	var raw map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		writeJSONError(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
-	assetType, ok := raw["type"].(string)
-	if !ok {
-		writeJSONError(w, "missing asset type", http.StatusBadRequest)
-		return
-	}
 
-	var asset models.Asset
-	switch assetType {
-	case string(models.AssetTypeChart):
-		var chart models.Chart
-		data, _ := json.Marshal(raw)
-		if err := json.Unmarshal(data, &chart); err != nil {
-			writeJSONError(w, "invalid chart", http.StatusBadRequest)
-			return
-		}
-		asset = &chart
-	case string(models.AssetTypeInsight):
-		var insight models.Insight
-		data, _ := json.Marshal(raw)
-		if err := json.Unmarshal(data, &insight); err != nil {
-			writeJSONError(w, "invalid insight", http.StatusBadRequest)
-			return
-		}
-		asset = &insight
-	case string(models.AssetTypeAudience):
-		var audience models.Audience
-		data, _ := json.Marshal(raw)
-		if err := json.Unmarshal(data, &audience); err != nil {
-			writeJSONError(w, "invalid audience", http.StatusBadRequest)
-			return
-		}
-		asset = &audience
-	default:
-		writeJSONError(w, "unknown asset type", http.StatusBadRequest)
+	asset, err := models.DecodeAsset(raw)
+	if err != nil {
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -112,10 +83,12 @@ func (h *Handler) AddFavorite(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(asset)
 }
+
 
 // RemoveFavorite godoc
 // @Summary      Remove a favorite asset
