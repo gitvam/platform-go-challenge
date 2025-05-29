@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/gitvam/platform-go-challenge/internal/middleware"
 	"github.com/gitvam/platform-go-challenge/internal/models"
 	"github.com/gitvam/platform-go-challenge/internal/store"
-	"github.com/go-chi/chi/v5"
-	"github.com/gitvam/platform-go-challenge/internal/middleware"
 	"github.com/gitvam/platform-go-challenge/internal/utils"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler holds dependencies (store)
@@ -95,11 +95,13 @@ func (h *Handler) AddFavorite(w http.ResponseWriter, r *http.Request) {
 
 // RemoveFavorite godoc
 // @Summary      Remove a favorite asset
-// @Description  Remove an asset from the user's favorites by asset ID.
+// @Description  Remove an asset from the user's favorites by asset external ID and type.
 // @Tags         favorites
 // @Param        userID path string true "User ID"
-// @Param        assetID path string true "Asset ID"
+// @Param        assetID path string true "Asset External ID"
+// @Param        type query string true "Asset Type (chart, insight, audience)"
 // @Success      204 "No Content"
+// @Failure      400 {object} utils.ErrorResponse
 // @Failure      401 {object} utils.ErrorResponse
 // @Failure      404 {object} utils.ErrorResponse
 // @Router       /v1/users/{userID}/favorites/{assetID} [delete]
@@ -109,7 +111,12 @@ func (h *Handler) RemoveFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	assetID := chi.URLParam(r, "assetID")
-	if err := h.Store.RemoveFavorite(userID, assetID); err != nil {
+	assetType := r.URL.Query().Get("type")
+	if assetType == "" {
+		utils.WriteJSONError(w, "missing asset type", http.StatusBadRequest)
+		return
+	}
+	if err := h.Store.RemoveFavorite(userID, assetType, assetID); err != nil {
 		utils.WriteJSONError(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -121,7 +128,8 @@ func (h *Handler) RemoveFavorite(w http.ResponseWriter, r *http.Request) {
 // @Description  Edit the description of a favorite asset.
 // @Tags         favorites
 // @Param        userID path string true "User ID"
-// @Param        assetID path string true "Asset ID"
+// @Param        assetID path string true "Asset External ID"
+// @Param        type query string true "Asset Type (chart, insight, audience)"
 // @Param        body body handlers.EditDescriptionRequest true "New Description"
 // @Success      200 {object} utils.SuccessResponse
 // @Failure      400 {object} utils.ErrorResponse
@@ -134,6 +142,11 @@ func (h *Handler) EditFavoriteDescription(w http.ResponseWriter, r *http.Request
 		return
 	}
 	assetID := chi.URLParam(r, "assetID")
+	assetType := r.URL.Query().Get("type")
+	if assetType == "" {
+		utils.WriteJSONError(w, "missing asset type", http.StatusBadRequest)
+		return
+	}
 	var req struct {
 		Description string `json:"description"`
 	}
@@ -141,7 +154,7 @@ func (h *Handler) EditFavoriteDescription(w http.ResponseWriter, r *http.Request
 		utils.WriteJSONError(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
-	if err := h.Store.EditFavoriteDescription(userID, assetID, req.Description); err != nil {
+	if err := h.Store.EditFavoriteDescription(userID, assetType, assetID, req.Description); err != nil {
 		utils.WriteJSONError(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -162,4 +175,9 @@ func getUserIDOrAbort(w http.ResponseWriter, r *http.Request) (string, bool) {
 		utils.WriteJSONError(w, "user ID missing from context", http.StatusUnauthorized)
 	}
 	return userID, ok
+}
+
+// EditDescriptionRequest is used in Swagger annotations
+type EditDescriptionRequest struct {
+	Description string `json:"description"`
 }

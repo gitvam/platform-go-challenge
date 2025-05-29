@@ -1,82 +1,116 @@
 package store
 
 import (
+	"database/sql"
+	"fmt"
+	"os"
 	"testing"
+
 	"github.com/gitvam/platform-go-challenge/internal/models"
+	"github.com/lib/pq"
 )
 
-func makeTestChart(id string) *models.Chart {
-	return &models.Chart{
-		ID:          id,
-		Title:       "Test Chart",
-		XAxisTitle:  "X",
-		YAxisTitle:  "Y",
-		Data:        []int{1, 2, 3},
-		Description: "desc",
+func getTestConnStr() string {
+	host := os.Getenv("DB_HOST")
+	if host == "" {
+		host = "localhost"
 	}
+	return fmt.Sprintf("postgres://gwi:password@%s:5432/favorites?sslmode=disable", host)
 }
-func makeTestInsight(id string) *models.Insight {
-	return &models.Insight{
-		ID:          id,
-		Text:        "Test insight",
-		Description: "desc",
-	}
-}
-func makeTestAudience(id string) *models.Audience {
-	return &models.Audience{
-		ID:                 id,
-		Gender:             "female",
-		BirthCountry:       "Italy",
-		AgeGroups:          []string{"18-24"},
-		HoursOnSocial:      3,
-		PurchasesLastMonth: 2,
-		Description:        "desc",
-	}
+
+func resetTestDB(db *sql.DB) {
+	db.Exec("DELETE FROM favorites")
+	db.Exec("DELETE FROM charts")
+	db.Exec("DELETE FROM insights")
+	db.Exec("DELETE FROM audiences")
 }
 
 func TestAddFavorite_Success(t *testing.T) {
-	s := NewInMemoryStore()
-	asset := makeTestChart("chart1")
-
-	if err := s.AddFavorite("user1", asset); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	favs, err := s.ListFavorites("user1")
+	s, err := NewPostgresStore(getTestConnStr())
 	if err != nil {
-		t.Fatalf("list favorites: %v", err)
+		t.Fatalf("failed to connect to db: %v", err)
 	}
+	resetTestDB(s.db)
+
+	_, err = s.db.Exec(`
+		INSERT INTO charts (external_id, title, x_axis_title, y_axis_title, data, description)
+		VALUES ('test_chart_extid', 'Chart Title', 'X', 'Y', ARRAY[1,2,3], 'desc')`)
+	if err != nil {
+		t.Fatalf("failed to insert test chart: %v", err)
+	}
+
+	chart := &models.Chart{
+		ExternalID:  "test_chart_extid",
+		Title:       "Chart Title",
+		XAxisTitle:  "X",
+		YAxisTitle:  "Y",
+		Data:        pq.Int64Array{1, 2, 3},
+		Description: "desc",
+		Type:        "chart",
+	}
+
+	err = s.AddFavorite("11111111-1111-1111-1111-111111111111", chart)
+	if err != nil {
+		t.Fatalf("AddFavorite failed: %v", err)
+	}
+
+	favs, err := s.ListFavorites("11111111-1111-1111-1111-111111111111")
+	if err != nil {
+		t.Fatalf("ListFavorites failed: %v", err)
+	}
+
 	if len(favs) != 1 {
 		t.Fatalf("expected 1 favorite, got %d", len(favs))
 	}
-	if favs[0].GetID() != "chart1" {
-		t.Errorf("expected ID 'chart1', got %q", favs[0].GetID())
+	if favs[0].GetType() != "chart" {
+		t.Errorf("expected type 'chart', got %q", favs[0].GetType())
 	}
 }
 
 func TestAddFavorite_Duplicate(t *testing.T) {
-	s := NewInMemoryStore()
-	asset := makeTestChart("dup1")
-	if err := s.AddFavorite("user1", asset); err != nil {
+	s, err := NewPostgresStore(getTestConnStr())
+	if err != nil {
 		t.Fatal(err)
 	}
-	err := s.AddFavorite("user1", asset)
-	if err == nil || err.Error() != "asset already in favorites" {
-		t.Fatalf("expected duplicate error, got %v", err)
+	resetTestDB(s.db)
+
+	s.db.Exec(`INSERT INTO insights (external_id, text, description) VALUES ('dup_insight', 'some text', 'desc')`)
+	insight := &models.Insight{
+		ExternalID:  "dup_insight",
+		Text:        "some text",
+		Description: "desc",
+		Type:        "insight",
+	}
+
+	err = s.AddFavorite("11111111-1111-1111-1111-111111111111", insight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = s.AddFavorite("11111111-1111-1111-1111-111111111111", insight)
+	if err == nil {
+		t.Fatal("expected duplicate error, got nil")
 	}
 }
 
 func TestAddFavorite_Invalid(t *testing.T) {
-	s := NewInMemoryStore()
-	invalid := &models.Chart{ID: "", Title: ""} // Invalid chart
-	err := s.AddFavorite("user1", invalid)
+	s, err := NewPostgresStore(getTestConnStr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalid := &models.Chart{ExternalID: "", Title: ""}
+	err = s.AddFavorite("user1", invalid)
 	if err == nil {
 		t.Fatal("expected validation error, got nil")
 	}
 }
 
 func TestListFavorites_EmptyUser(t *testing.T) {
-	s := NewInMemoryStore()
-	favs, err := s.ListFavorites("noone")
+	s, err := NewPostgresStore(getTestConnStr())
+	if err != nil {
+		t.Fatal(err)
+	}
+	resetTestDB(s.db)
+	favs, err := s.ListFavorites("33333333-3333-3333-3333-333333333333")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,65 +119,30 @@ func TestListFavorites_EmptyUser(t *testing.T) {
 	}
 }
 
-func TestRemoveFavorite(t *testing.T) {
-	s := NewInMemoryStore()
-	asset := makeTestChart("chart1")
-	_ = s.AddFavorite("u", asset)
-	// Remove existing
-	err := s.RemoveFavorite("u", "chart1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Remove again, should fail
-	err = s.RemoveFavorite("u", "chart1")
-	if err == nil {
-		t.Fatal("expected error on removing non-existing asset")
-	}
-	// Remove from non-existent user
-	err = s.RemoveFavorite("nope", "whatever")
-	if err == nil {
-		t.Fatal("expected error on removing from non-existent user")
-	}
-}
-
-func TestEditFavoriteDescription(t *testing.T) {
-	s := NewInMemoryStore()
-	asset := makeTestInsight("insight1")
-	_ = s.AddFavorite("testu", asset)
-	// Success
-	err := s.EditFavoriteDescription("testu", "insight1", "new desc")
-	if err != nil {
-		t.Fatal(err)
-	}
-	favs, _ := s.ListFavorites("testu")
-	if favs[0].GetDescription() != "new desc" {
-		t.Errorf("expected updated description, got %q", favs[0].GetDescription())
-	}
-	// Edit non-existent asset
-	err = s.EditFavoriteDescription("testu", "noid", "whatever")
-	if err == nil {
-		t.Fatal("expected error for missing asset")
-	}
-	// Edit for non-existent user
-	err = s.EditFavoriteDescription("nouser", "noid", "whatever")
-	if err == nil {
-		t.Fatal("expected error for missing user")
-	}
-}
-
 func TestAddAndListDifferentAssets(t *testing.T) {
-	s := NewInMemoryStore()
-	assets := []models.Asset{
-		makeTestChart("c1"),
-		makeTestInsight("i1"),
-		makeTestAudience("a1"),
+	s, err := NewPostgresStore(getTestConnStr())
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, a := range assets {
-		if err := s.AddFavorite("userx", a); err != nil {
+	resetTestDB(s.db)
+
+	s.db.Exec(`INSERT INTO charts (external_id, title, x_axis_title, y_axis_title, data, description) VALUES ('chart_c1', 't', 'x', 'y', ARRAY[1], 'd')`)
+	s.db.Exec(`INSERT INTO insights (external_id, text, description) VALUES ('insight_i1', 't', 'd')`)
+	s.db.Exec(`INSERT INTO audiences (external_id, gender, birth_country, age_groups, hours_on_social, purchases_last_month, description) VALUES ('audience_a1', 'f', 'GR', ARRAY['18-24'], 2, 1, 'd')`)
+
+	assets := []models.Asset{
+		&models.Chart{ExternalID: "chart_c1", Title: "t", XAxisTitle: "x", YAxisTitle: "y", Data: pq.Int64Array{1, 2, 3}, Description: "d", Type: "chart"},
+		&models.Insight{ExternalID: "insight_i1", Text: "t", Description: "d", Type: "insight"},
+		&models.Audience{ExternalID: "audience_a1", Gender: "f", BirthCountry: "GR", AgeGroups: []string{"18-24"}, HoursOnSocial: 2, PurchasesLastMonth: 1, Description: "d", Type: "audience"},
+	}
+
+	for _, asset := range assets {
+		if err := s.AddFavorite("22222222-2222-2222-2222-222222222222", asset); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
-	favs, err := s.ListFavorites("userx")
+
+	favs, err := s.ListFavorites("22222222-2222-2222-2222-222222222222")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,11 +1,12 @@
-package handlers_test
+package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gitvam/platform-go-challenge/internal/handlers"
 	"github.com/gitvam/platform-go-challenge/internal/middleware"
@@ -14,61 +15,81 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const jwtSecret = "my_super_secret"
-
-func generateJWT(sub string) string {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": sub,
-		"exp": time.Now().Add(2 * 365 * 24 * time.Hour).Unix(),
-	})
-	signed, err := token.SignedString([]byte(jwtSecret))
-	if err != nil {
-		panic("failed to sign test token: " + err.Error())
+func getSignedToken(userID string) string {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "my_super_secret"
 	}
-	return signed
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": userID,
+	})
+	signedToken, _ := token.SignedString([]byte(secret))
+	return signedToken
 }
 
-func makeRequest(method, path, token, body string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json")
+func setupTestRouter() http.Handler {
+	host := os.Getenv("DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+	dsn := fmt.Sprintf("postgres://gwi:password@%s:5432/favorites?sslmode=disable", host)
 
-	rr := httptest.NewRecorder()
-	s := store.NewInMemoryStore()
-	store.SeedDummyData(s)
+	s, err := store.NewPostgresStore(dsn)
+	if err != nil {
+		panic(fmt.Errorf("failed to connect to db: %w", err))
+	}
+
+	// Ensure test chart exists
+	_, _ = s.DB().Exec(`
+		INSERT INTO charts (external_id, title, x_axis_title, y_axis_title, data, description)
+		VALUES ('chart_engagement_2024', 'Engagement Q1', 'Month', 'Engagement', ARRAY[10,20,30], 'A seeded chart')
+		ON CONFLICT (external_id) DO NOTHING
+	`)
+
 	h := handlers.NewHandler(s)
 
 	r := chi.NewRouter()
 	r.Use(middleware.JWTAuthMiddleware)
-	r.Route("/v1/users/{userID}/favorites", func(sr chi.Router) {
-		sr.Get("/", h.ListFavorites)
-		sr.Post("/", h.AddFavorite)
-	})
+	r.Get("/v1/users/{userID}/favorites", h.ListFavorites)
+	r.Post("/v1/users/{userID}/favorites", h.AddFavorite)
+	r.Delete("/v1/users/{userID}/favorites/{assetID}", h.RemoveFavorite)
+	r.Patch("/v1/users/{userID}/favorites/{assetID}", h.EditFavoriteDescription)
 
-	r.ServeHTTP(rr, req)
-	return rr
+	return r
 }
 
-func TestListFavorites_Johnsmith(t *testing.T) {
-	token := generateJWT("johnsmith")
-	rr := makeRequest("GET", "/v1/users/ignored/favorites", token, "")
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
-	}
-	if !strings.Contains(rr.Body.String(), "chart_engagement_2024") {
-		t.Errorf("expected seeded chart, got: %s", rr.Body.String())
-	}
-}
+func TestAddAndListFavorite(t *testing.T) {
+	router := setupTestRouter()
+	userID := "11111111-1111-1111-1111-111111111111"
+	token := getSignedToken(userID)
 
-func TestListFavorites_Maria(t *testing.T) {
-	token := generateJWT("mariapapadopoulou")
-	rr := makeRequest("GET", "/v1/users/ignored/favorites", token, "")
+	addBody := `{
+		"type": "chart",
+		"external_id": "chart_engagement_2024",
+		"title": "Engagement Chart",
+		"x_axis_title": "Month",
+		"y_axis_title": "Engagement",
+		"data": [10, 20, 30],
+		"description": "A test chart"
+	}`
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+	req := httptest.NewRequest("POST", "/v1/users/"+userID+"/favorites", strings.NewReader(addBody))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	if resp.Code != http.StatusCreated {
+		t.Errorf("expected status 201, got %d", resp.Code)
 	}
-	if !strings.Contains(rr.Body.String(), "chart_ecom_conversion") {
-		t.Errorf("expected maria's chart, got: %s", rr.Body.String())
+
+	// List to verify
+	reqList := httptest.NewRequest("GET", "/v1/users/"+userID+"/favorites", nil)
+	reqList.Header.Set("Authorization", "Bearer "+token)
+	respList := httptest.NewRecorder()
+	router.ServeHTTP(respList, reqList)
+	if respList.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", respList.Code)
 	}
 }

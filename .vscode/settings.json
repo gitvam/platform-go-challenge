@@ -1,0 +1,5 @@
+{
+    "dataworkspace.excludedProjects": [
+        "platform-go-challenge/platform-go-challenge.sqlproj"
+    ]
+}
