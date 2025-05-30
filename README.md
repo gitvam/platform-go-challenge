@@ -6,6 +6,24 @@ This project goes beyond the original challenge with production-grade API patter
 
 ---
 
+## API Endpoints
+
+All endpoints require a valid JWT token in the `Authorization: Bearer <token>` header.
+
+| Method | Path                                              | Description                             |
+|--------|---------------------------------------------------|-----------------------------------------|
+| GET    | `/v1/users/{userID}/favorites`                    | List all favorite assets for the user   |
+| POST   | `/v1/users/{userID}/favorites`                    | Add a new favorite asset                |
+| DELETE | `/v1/users/{userID}/favorites/{assetID}?type=...` | Remove a favorite by external ID & type |
+| PATCH  | `/v1/users/{userID}/favorites/{assetID}?type=...` | Edit description of a favorite asset    |
+
+**Query Parameters:**
+
+- `limit` / `offset` on `GET /favorites` for pagination  
+- `type` on `DELETE` and `PATCH` (must be one of `chart`, `insight`, or `audience`)
+
+> ⏳ All endpoints are protected by IP-based rate limiting: **10 requests per minute per IP**
+
 ## Project Structure
 
 ```
