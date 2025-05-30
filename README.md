@@ -1,7 +1,7 @@
 # GWI Favorites API
 
 A robust Go REST API for managing user favorites at GWI, including charts, insights, and audiences.  
-Built for clarity, security, and real-world deployment—tested with Docker Compose and secured with JWT.  
+Built for clarity, security, and real-world deployment, tested with Docker Compose and secured with JWT.  
 This project goes beyond the original challenge with production-grade API patterns, full integration tests, Docker automation, and best practices for both Linux and Windows.
 
 ---
