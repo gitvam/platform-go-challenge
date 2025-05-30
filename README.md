@@ -82,14 +82,12 @@ On Windows with MinGW:
 ```bash
 mingw32-make down up reset-password test
 ```
+This will:
 
-Or run all steps with a custom target:
-
-```bash
-mingw32-make full-reset
-```
-
-This brings up a fresh Postgres, seeds with demo data, guarantees correct credentials, and runs all tests against the live DB.
+- Stop and clean any existing containers and volumes (down)
+- Start a fresh PostgreSQL container (up)
+- Reset the gwi user password to match your test config (reset-password)
+- Run all Go tests against the live PostgreSQL instance (test)
 
 ---
 
