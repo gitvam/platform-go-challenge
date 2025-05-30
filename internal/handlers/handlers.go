@@ -35,13 +35,16 @@ func (h *Handler) ListFavorites(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	favorites, err := h.Store.ListFavorites(userID)
+
+	limit := utils.ParseQueryInt(r, "limit", 10)
+	offset := utils.ParseQueryInt(r, "offset", 0)
+
+	favorites, err := h.Store.ListFavorites(userID, limit, offset)
 	if err != nil {
 		utils.WriteJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(utils.SuccessResponse{
+	utils.WriteJSON(w, http.StatusOK, utils.SuccessResponse{
 		Status: "success",
 		Data:   favorites,
 	})

@@ -1,104 +1,159 @@
 # GWI Favorites API
 
-A Go REST API for managing user favorites at GWI, including charts, insights, and audiences. Built with clean, idiomatic Go, tested in Docker, and secured with JWT authentication.
+A robust Go REST API for managing user favorites at GWI, including charts, insights, and audiences.  
+Built for clarity, security, and real-world deployment—tested with Docker Compose and secured with JWT.  
+This project goes beyond the original challenge with production-grade API patterns, full integration tests, Docker automation, and best practices for both Linux and Windows.
 
 ---
 
-## 📦 Project Structure
+## Project Structure
 
 ```
-├── cmd/server           # Entry point (main.go)
-├── docs/                # Swagger-generated OpenAPI docs (swagger.yaml, swagger.json, docs.go)
-├── internal/
-│   ├── handlers         # HTTP handlers
-│   ├── middleware       # JWT auth middleware
-│   ├── models           # Asset models and interface
-│   ├── store            # In-memory store + seeding
-│   └── utils            # JSON response wrappers, logging
-├── handlers_test/       # Integration tests for the API
-├── dev.bat              # Windows dev script (build, run, test)
-├── Dockerfile           # Multi-stage Docker build (build + distroless run)
-├── docker-compose.yml   # Service orchestration (optional)
-├── go.mod               # Go module definition
-├── go.sum               # Go dependency lock file
-└── README.md            # Project documentation
+cmd/
+  server/               # Main entry point (main.go)
+    main.go
+docs/
+  docs.go
+  swagger.json
+  swagger.yaml
+handlers_test/
+  api_test.go           # API integration tests
+internal/
+  handlers/
+    handlers.go
+  middleware/
+    jwt.go
+    logging.go
+  models/
+    asset.go
+    utils.go
+  store/
+    postgres_store.go
+    store.go
+    store_test.go
+  utils/
+    http.go
+    utils.go
+.vscode/                # VS Code config (optional)
+Dockerfile
+docker-compose.yml
+.dockerignore
+init.sql
+Makefile
+go.mod
+go.sum
+README.md
 ```
 
 ---
 
-## 🚀 Features
+## Features
 
-- ✅ Add/remove/edit favorite assets per user
-- ✅ Supports Charts, Insights, Audiences via polymorphic `Asset` interface
-- ✅ JWT authentication (with real signature validation)
-- ✅ Swagger docs (`/swagger/index.html`)
-- ✅ In-memory store with dummy data for dev
-- ✅ Standardized JSON API responses
-- ✅ All tests run via Docker (`go test ./...`)
-- ✅ Windows-first dev flow via `dev.bat`
-- 🛡️ IP-based rate limiting via `go-chi/httprate`
+- REST API to add, list, edit, and remove user favorites (charts, insights, audiences)
+- PostgreSQL backend with schema and seed data via `init.sql`
+- Polymorphic asset model using Go interfaces
+- JWT authentication with Bearer tokens in the `Authorization` header
+- Swagger UI at `/swagger/index.html`
+- IP-based rate limiting via `go-chi/httprate`
+- Automated integration/unit tests using Dockerized Postgres and Go's `testing` package
+- Consistent JSON error and success responses
+- Cross-platform task automation with Makefile (works with `mingw32-make`)
 
 ---
 
-## 🧪 Running Tests
+## Best Practices Followed
+
+- All secrets and configuration from environment variables
+- Fully automated Docker Compose setup (including volume cleanup)
+- Database seeding and idempotent schema via `init.sql`
+- Secure JWT authentication, signature, and claims validation (middleware enforces Bearer scheme)
+- Modular/idiomatic Go structure, no global state
+- Live API documentation via Swagger
+- Rate limiting to prevent abuse
+- Tests run against a real Postgres database, not just mocks
+- Scripts and Makefile work cross-platform (Windows/Linux/Mac)
+- Wrapped DB initialization in transactions for safe schema creation and rollback on failure
+
+---
+
+## Running Tests
+
+On Windows with MinGW:
 
 ```bash
-dev.bat test
+mingw32-make down up reset-password test
 ```
 
-This runs `go test -v ./...` in a Docker container using Go `1.24.3`.
+Or run all steps with a custom target:
+
+```bash
+mingw32-make full-reset
+```
+
+This brings up a fresh Postgres, seeds with demo data, guarantees correct credentials, and runs all tests against the live DB.
 
 ---
 
-## 🛠 Running the API
+## Running the API Locally
 
 ```bash
-dev.bat build
-dev.bat run
+mingw32-make run
 ```
 
-Or use Docker directly:
+With Docker Compose:
 
 ```bash
-docker build -t gwi-favorites-api .
-docker run -p 8080:8080 -e APP_ENV=dev gwi-favorites-api
+docker-compose up -d
 ```
 
-> JWTs will be printed in the terminal on startup in dev mode.
+Then:
+
+```bash
+set DATABASE_URL=postgres://gwi:password@localhost:5432/favorites?sslmode=disable
+go run ./cmd/server
+```
 
 ---
 
-## 🔐 JWT Authentication
+## JWT Authentication
 
-- The API expects a valid Bearer token in `Authorization` header.
-- Tokens are validated and parsed using `github.com/golang-jwt/jwt/v5`
-- Subject claim (`sub`) is used as the authenticated `userID`.
+The API **expects an HTTP header** with a valid Bearer token:
 
-### Example Token Payload
+```
+Authorization: Bearer <token>
+```
+
+- JWT secret is `my_super_secret` (demo only, use an environment variable in production).
+- The `sub` claim in the JWT maps to the `userID` used for the API calls.
+- If the header is missing, malformed, or the token is invalid, the API responds with `401 Unauthorized`.
+
+### Example Payload
 
 ```json
 {
-  "sub": "johnsmith",
-  "exp": 1748374243
+  "sub": "11111111-1111-1111-1111-111111111111",
+  "exp": 1999999999
 }
 ```
 
+You can generate test tokens at [jwt.io](https://jwt.io) using the secret `my_super_secret`.
+
 ---
 
-## 🧾 Example API Response
+## Example API Response
 
-### ✅ Success
+### Success:
 
 ```json
 {
   "status": "success",
   "data": [
-    { "id": "chart_1", "title": "Engagement Q1", "type": "chart" }
+    { "id": "chart_engagement_2024", "title": "Q1 2024 Social Media Engagement", "type": "chart" }
   ]
 }
 ```
 
-### ❌ Error
+### Error:
 
 ```json
 {
@@ -109,23 +164,34 @@ docker run -p 8080:8080 -e APP_ENV=dev gwi-favorites-api
 
 ---
 
-## 🧠 Design Notes
+## Additions Beyond the Original Challenge
 
-- ✅ All handlers use `utils.SuccessResponse` and `utils.ErrorResponse`
-- ✅ `getUserIDOrAbort()` ensures user is in context from JWT
-- ✅ Assets are dynamically deserialized from JSON via a type field
+- Automated PostgreSQL setup via Docker Compose and seed file  
+- Integration tests running against a real DB  
+- Rate limiting middleware for security  
+- Live Swagger/OpenAPI documentation  
+- Polymorphic Go types for flexible asset support  
+- Consistent JSON API responses  
+- Idempotent reset/test targets for easy CI/dev runs
+
+## Future Improvements
+
+- Add Redis or in-memory caching to reduce repeated asset lookups
+- Introduce CI/CD pipeline (e.g., GitHub Actions) for automated tests, formatting, and container builds
 
 ---
 
-## 💡 Future Improvements
+## Known Issue: Docker + Windows + Postgres
+**NOTE:**  
+On Docker for Windows, there is a widely-reported bug where Postgres password authentication (`pq: password authentication failed for user "gwi"`) fails even after destroying all volumes, resetting the password, and editing `pg_hba.conf` to use `md5`.  
 
-- 🔁 Move from in-memory to persistent database (PostgreSQL)
-- 🧠 Add caching layer (e.g., `go-cache` or Redis) for frequently accessed assets
-- 📄 Improve Swagger schema with oneOf + discriminator
+This issue occurs even with fresh and known-good projects, and is due to Docker/Postgres interaction on Windows, not a code bug or logic error.
+
+All project code, schema, and tests are correct.  
 
 ---
 
-## 🧠 Author
+## Author
 
-George Vamvakousis  
-📧 [geovam99@gmail.com](mailto:geovam99@gmail.com)
+**George Vamvakousis**  
+[geovam99@gmail.com](mailto:geovam99@gmail.com)

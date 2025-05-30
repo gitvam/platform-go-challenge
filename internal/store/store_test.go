@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-
 	"github.com/gitvam/platform-go-challenge/internal/models"
 	"github.com/lib/pq"
 )
@@ -54,7 +53,7 @@ func TestAddFavorite_Success(t *testing.T) {
 		t.Fatalf("AddFavorite failed: %v", err)
 	}
 
-	favs, err := s.ListFavorites("11111111-1111-1111-1111-111111111111")
+	favs, err := s.ListFavorites("11111111-1111-1111-1111-111111111111", 10, 0)
 	if err != nil {
 		t.Fatalf("ListFavorites failed: %v", err)
 	}
@@ -98,7 +97,7 @@ func TestAddFavorite_Invalid(t *testing.T) {
 		t.Fatal(err)
 	}
 	invalid := &models.Chart{ExternalID: "", Title: ""}
-	err = s.AddFavorite("user1", invalid)
+	err = s.AddFavorite("11111111-1111-1111-1111-111111111111", invalid)
 	if err == nil {
 		t.Fatal("expected validation error, got nil")
 	}
@@ -110,7 +109,7 @@ func TestListFavorites_EmptyUser(t *testing.T) {
 		t.Fatal(err)
 	}
 	resetTestDB(s.db)
-	favs, err := s.ListFavorites("33333333-3333-3333-3333-333333333333")
+	favs, err := s.ListFavorites("33333333-3333-3333-3333-333333333333", 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,7 +141,7 @@ func TestAddAndListDifferentAssets(t *testing.T) {
 		}
 	}
 
-	favs, err := s.ListFavorites("22222222-2222-2222-2222-222222222222")
+	favs, err := s.ListFavorites("22222222-2222-2222-2222-222222222222", 10, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

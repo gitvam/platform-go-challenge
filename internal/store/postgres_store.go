@@ -29,7 +29,7 @@ func NewPostgresStore(connStr string) (*PostgresStore, error) {
 	return &PostgresStore{db: db}, nil
 }
 
-func (ps *PostgresStore) ListFavorites(userID string) ([]models.Asset, error) {
+func (ps *PostgresStore) ListFavorites(userID string, limit, offset int) ([]models.Asset, error){
 	var results []models.Asset
 
 	// Charts
@@ -38,8 +38,9 @@ func (ps *PostgresStore) ListFavorites(userID string) ([]models.Asset, error) {
 		FROM favorites f
 		JOIN charts c ON f.asset_type = 'chart' AND f.asset_id = c.id
 		WHERE f.user_id = $1
+		LIMIT $2 OFFSET $3
 	`
-	chartRows, err := ps.db.Query(chartQuery, userID)
+	chartRows, err := ps.db.Query(chartQuery, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +60,9 @@ func (ps *PostgresStore) ListFavorites(userID string) ([]models.Asset, error) {
 		FROM favorites f
 		JOIN insights i ON f.asset_type = 'insight' AND f.asset_id = i.id
 		WHERE f.user_id = $1
+		LIMIT $2 OFFSET $3
 	`
-	insightRows, err := ps.db.Query(insightQuery, userID)
+	insightRows, err := ps.db.Query(insightQuery, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +82,9 @@ func (ps *PostgresStore) ListFavorites(userID string) ([]models.Asset, error) {
 		FROM favorites f
 		JOIN audiences a ON f.asset_type = 'audience' AND f.asset_id = a.id
 		WHERE f.user_id = $1
+		LIMIT $2 OFFSET $3
 	`
-	audienceRows, err := ps.db.Query(audienceQuery, userID)
+	audienceRows, err := ps.db.Query(audienceQuery, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
