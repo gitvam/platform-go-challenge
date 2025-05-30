@@ -10,14 +10,14 @@ This project goes beyond the original challenge with production-grade API patter
 
 ```
 cmd/
-  server/               # Main entry point (main.go)
+  server/              
     main.go
 docs/
   docs.go
   swagger.json
   swagger.yaml
 handlers_test/
-  api_test.go           # API integration tests
+  api_test.go           
 internal/
   handlers/
     handlers.go
@@ -34,7 +34,6 @@ internal/
   utils/
     http.go
     utils.go
-.vscode/                # VS Code config (optional)
 Dockerfile
 docker-compose.yml
 .dockerignore
