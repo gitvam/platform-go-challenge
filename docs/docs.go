@@ -9,15 +9,7 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "George Vamvakousis",
-            "email": "geovam99@gmail.com"
-        },
-        "license": {
-            "name": "MIT",
-            "url": "https://opensource.org/licenses/MIT"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -43,14 +35,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {}
+                            "$ref": "#/definitions/utils.SuccessResponse"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized - missing or invalid token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
                 }
@@ -78,20 +75,28 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {}
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
                     },
                     "400": {
-                        "description": "Bad request",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
                 }
@@ -99,7 +104,7 @@ const docTemplate = `{
         },
         "/v1/users/{userID}/favorites/{assetID}": {
             "delete": {
-                "description": "Remove an asset from the user's favorites by asset ID.",
+                "description": "Remove an asset from the user's favorites by asset external ID and type.",
                 "tags": [
                     "favorites"
                 ],
@@ -114,29 +119,39 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Asset ID",
+                        "description": "Asset External ID",
                         "name": "assetID",
                         "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Asset Type (chart, insight, audience)",
+                        "name": "type",
+                        "in": "query",
                         "required": true
                     }
                 ],
                 "responses": {
                     "204": {
-                        "description": "No Content",
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not found",
+                        "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
                 }
@@ -157,38 +172,83 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Asset ID",
+                        "description": "Asset External ID",
                         "name": "assetID",
                         "in": "path",
                         "required": true
                     },
                     {
+                        "type": "string",
+                        "description": "Asset Type (chart, insight, audience)",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
                         "description": "New Description",
-                        "name": "description",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/handlers.EditDescriptionRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "schema": {}
+                        "schema": {
+                            "$ref": "#/definitions/utils.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not found",
+                        "description": "Not Found",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.EditDescriptionRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "utils.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "status": {
+                    "type": "string"
                 }
             }
         }
@@ -197,12 +257,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8080",
-	BasePath:         "/",
+	Version:          "",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "GWI Favorites API",
-	Description:      "An API to manage user favorites (charts, insights, audiences) at GWI.",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

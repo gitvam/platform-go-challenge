@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/gitvam/platform-go-challenge/docs"
 	"github.com/gitvam/platform-go-challenge/internal/handlers"
 	"github.com/gitvam/platform-go-challenge/internal/middleware"
 	"github.com/gitvam/platform-go-challenge/internal/store"
@@ -28,16 +29,24 @@ func main() {
 	h := handlers.NewHandler(s)
 
 	r := chi.NewRouter()
+
+	// Global middleware
 	r.Use(httprate.LimitByIP(10, 1*time.Minute))
 	r.Use(middleware.Logging)
-	r.Use(middleware.JWTAuthMiddleware)
 
+	// No auth for Swagger docs
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
-	r.Route("/v1/users/{userID}/favorites", func(sr chi.Router) {
-		sr.Get("/", h.ListFavorites)
-		sr.Post("/", h.AddFavorite)
-		sr.Delete("/{assetID}", h.RemoveFavorite)
-		sr.Patch("/{assetID}", h.EditFavoriteDescription)
+
+	// JWT-protected API routes
+	r.Group(func(api chi.Router) {
+		api.Use(middleware.JWTAuthMiddleware)
+
+		api.Route("/v1/users/{userID}/favorites", func(sr chi.Router) {
+			sr.Get("/", h.ListFavorites)
+			sr.Post("/", h.AddFavorite)
+			sr.Delete("/{assetID}", h.RemoveFavorite)
+			sr.Patch("/{assetID}", h.EditFavoriteDescription)
+		})
 	})
 
 	log.Println("Server running on http://localhost:8080 ...")

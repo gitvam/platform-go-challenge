@@ -1,16 +1,24 @@
-basePath: /
-host: localhost:8080
+definitions:
+  handlers.EditDescriptionRequest:
+    properties:
+      description:
+        type: string
+    type: object
+  utils.ErrorResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  utils.SuccessResponse:
+    properties:
+      data: {}
+      status:
+        type: string
+    type: object
 info:
-  contact:
-    email: geovam99@gmail.com
-    name: George Vamvakousis
-  description: An API to manage user favorites (charts, insights, audiences) at GWI.
-  license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
-  termsOfService: http://swagger.io/terms/
-  title: GWI Favorites API
-  version: "1.0"
+  contact: {}
 paths:
   /v1/users/{userID}/favorites:
     get:
@@ -26,12 +34,15 @@ paths:
         "200":
           description: OK
           schema:
-            items: {}
-            type: array
+            $ref: '#/definitions/utils.SuccessResponse'
         "401":
-          description: Unauthorized
+          description: Unauthorized - missing or invalid token
           schema:
-            type: string
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: List all favorites for a user
       tags:
       - favorites
@@ -49,47 +60,60 @@ paths:
         required: true
         schema: {}
       responses:
-        "200":
-          description: OK
-          schema: {}
-        "400":
-          description: Bad request
+        "201":
+          description: Created
           schema:
-            type: string
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Add a favorite asset
       tags:
       - favorites
   /v1/users/{userID}/favorites/{assetID}:
     delete:
-      description: Remove an asset from the user's favorites by asset ID.
+      description: Remove an asset from the user's favorites by asset external ID
+        and type.
       parameters:
       - description: User ID
         in: path
         name: userID
         required: true
         type: string
-      - description: Asset ID
+      - description: Asset External ID
         in: path
         name: assetID
+        required: true
+        type: string
+      - description: Asset Type (chart, insight, audience)
+        in: query
+        name: type
         required: true
         type: string
       responses:
         "204":
           description: No Content
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
-          description: Not found
+          description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Remove a favorite asset
       tags:
       - favorites
@@ -101,29 +125,39 @@ paths:
         name: userID
         required: true
         type: string
-      - description: Asset ID
+      - description: Asset External ID
         in: path
         name: assetID
         required: true
         type: string
+      - description: Asset Type (chart, insight, audience)
+        in: query
+        name: type
+        required: true
+        type: string
       - description: New Description
         in: body
-        name: description
+        name: body
         required: true
         schema:
-          type: string
+          $ref: '#/definitions/handlers.EditDescriptionRequest'
       responses:
         "200":
           description: OK
-          schema: {}
+          schema:
+            $ref: '#/definitions/utils.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/utils.ErrorResponse'
         "404":
-          description: Not found
+          description: Not Found
           schema:
-            type: string
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Edit favorite asset description
       tags:
       - favorites

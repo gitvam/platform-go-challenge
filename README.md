@@ -93,42 +93,62 @@ README.md
 
 ---
 
-## Running Tests
-
-On Windows with MinGW:
-
-```bash
-mingw32-make down up reset-password test
-```
-This will:
-
-- Stop and clean any existing containers and volumes (down)
-- Start a fresh PostgreSQL container (up)
-- Reset the gwi user password to match your test config (reset-password)
-- Run all Go tests against the live PostgreSQL instance (test)
+---
 
 ---
 
-## Running the API Locally
+## 🔍 Running Tests
+
+### ✅ Option 1: Native Go + Docker Compose for PostgreSQL
+
+Run tests locally with your Go toolchain, connecting to Dockerized Postgres:
 
 ```bash
-mingw32-make run
+mingw32-make down
+mingw32-make up
+mingw32-make test
 ```
 
-With Docker Compose:
+This will:
+
+- Reset the environment
+- Start a fresh PostgreSQL container
+- Run all Go tests using the local Go installation
+
+---
+
+## 🚀 Running the API
+
+### 🐳 Option 1: Run API in Docker
+
+```bash
+mingw32-make build
+mingw32-make docker-run
+```
+
+This will:
+
+- Build the Go binary in a clean Docker container
+- Copy Swagger docs into the image
+- Run the API connected to Postgres via `host.docker.internal`
+- Serve the API at `http://localhost:8080`
+
+---
+
+### 💻 Option 2: Run API Locally with Dockerized DB
 
 ```bash
 docker-compose up -d
 ```
 
-Then:
+Then run the server using Go:
 
 ```bash
 set DATABASE_URL=postgres://gwi:password@localhost:5432/favorites?sslmode=disable
 go run ./cmd/server
 ```
 
----
+> Swagger UI: http://localhost:8080/swagger/index.html
 
 ## JWT Authentication
 
