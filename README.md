@@ -197,14 +197,45 @@ You can generate test tokens at [jwt.io](https://jwt.io) using the secret `my_su
 ---
 
 ## Known Issue: Docker + Windows + Postgres
+
 **NOTE:**  
-On Docker for Windows, there is a widely-reported bug where Postgres password authentication (`pq: password authentication failed for user "gwi"`) fails even after destroying all volumes, resetting the password, and editing `pg_hba.conf` to use `md5`.  
+On Docker for Windows, there is a widely-reported bug where Postgres password authentication (`pq: password authentication failed for user "gwi"`) fails even after destroying all volumes, resetting the password, and editing `pg_hba.conf` to use `scram-sha-256`.
 
 This issue occurs even with fresh and known-good projects, and is due to Docker/Postgres interaction on Windows, not a code bug or logic error.
 
-All project code, schema, and tests are correct.  
+---
+
+### ✅ Temporary Fix (for local development only)
+
+1. Locate the `pg_hba.conf` file inside your container or Windows installation:  
+   - For Docker: use `docker exec -it <container> bash`  
+   - For native installs: usually found in `C:\Program Files\PostgreSQL\XX\data`
+
+2. Find the lines:
+
+    ```conf
+    host    all             all             127.0.0.1/32            scram-sha-256
+    host    all             all             ::1/128                 scram-sha-256
+    ```
+
+3. Then change them to:
+
+    ```conf
+    host    all             all             127.0.0.1/32            trust
+    host    all             all             ::1/128                 trust
+    ```
+
+4. Restart PostgreSQL:
+
+    ```conf
+    For Docker: docker restart <container-name>
+    For Windows native install: run services.msc → find PostgreSQL → right-click → Restart
+    ```
 
 ---
+
+All project code, schema, and tests are correct. This repo will work out-of-the-box on Linux, macOS, WSL2, or with native Postgres.
+
 
 ## Author
 
