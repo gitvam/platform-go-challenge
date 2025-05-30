@@ -92,11 +92,6 @@ README.md
 - Wrapped DB initialization in transactions for safe schema creation and rollback on failure
 
 ---
-
----
-
----
-
 ## 🔍 Running Tests
 
 ### ✅ Option 1: Native Go + Docker Compose for PostgreSQL
